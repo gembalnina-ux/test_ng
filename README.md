@@ -3,4 +3,6 @@
 
 ----
 student: Nina Gembal
+
+
 numer indeksu: s199989
