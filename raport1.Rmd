@@ -1,0 +1,129 @@
+---
+title: "Podstawowe operacje w R"
+author: "Twoje imię i nazwisko"
+date: Opublikowano `r format(Sys.time(), "%a %b %d %X %Y")`
+output: 
+  html_document: 
+    toc: yes
+    toc_depth: 4
+    highlight: espresso
+    theme: journal
+    number_sections: yes
+---
+
+```{r konfiguracja, message=FALSE, warning=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#dane<-read.csv(file="https://tiny.pl/9rs5c")
+options(scipen = 999, digits=6)
+#attach(dane)
+library(tidyverse)
+library(lfactors)
+```
+
+## Rodzaje struktur danych
+
+### Wektory
+
+**Zadanie 1**. *Utwórz* wektor danych "wiek" (w latach). Każdy z nich ma mieć 10 obserwacji, dowolne wartości.
+
+```{r}
+wiek <- c(15,25,40,50,60,23,33,36,19,24)
+tail(wiek,3)  # ostatnich 3 
+head(wiek,3)  # pierwsze 3 obserwacje
+wiek[wiek>30]
+```
+
+### Czynnik
+
+**Zadanie 2**. Utwórz wektor ryzyko jako czynnik (factor): dla wieku \>30 lat "0" o etykiecie "wysokie", a dla pozostałych "1" o etykiecie "niskie". Wskazówka: można wykorzystać ifelse.
+
+```{r}
+ryz <- ifelse(wiek>=30, 0, 1)
+ryzyko <- lfactor(ryz,levels=0:1,labels=c("wysokie","niskie"))
+ryzyko
+```
+
+### Ramka danych
+
+**Zadanie 3**. Połącz wiek i ryzyko tworząc nową ramkę danych o nazwie "ramka". Posortuj obserwacje wg wieku (malejąco).
+
+```{r}
+ramka <- data.frame(wiek,ryzyko)
+ramka[3:5,]
+
+```
+
+### Tablice
+
+**Zadanie 4**. Utwórz tablicę "tablica" z wieku i ryzyka o wymiarach 5 wierszy, 2 kolumny (zmienne), 2 podgrupy o nazwie "Grupa 1." oraz "Grupa 2".
+
+```{r}
+
+```
+
+### Listy
+
+**Zadanie 5**. Utwórz listę "lista" zawierającą pierwsze 3 elementy każdej z grup w tablicy "tablica" oraz 3 kolory które najbardziej lubisz.
+
+```{r}
+
+
+```
+
+### Macierze
+
+**Zadanie 6**. Utwórz macierz kwadratową B z cyfr od 1 do 9; macierz kwadratową A 2x3 z cyfr od 1 do 6; macierz C 3x2 z cyfr od 1 do 6. Dodaj do macierzy A wiersz [1,1,1] jako macierz D oraz do macierzy C kolumnę [1,1,1] jako macierz E. Wyświetl tylko trzeci wiersz macierzy E i trzecią kolumnę macierzy D.
+
+```{r}
+
+
+```
+
+## Analiza opisowa
+
+**Zadanie 7**. Dokonaj pełnej analizy opisowej dla osób z grupy 1. oraz grupy 2. (średnia, odchylenia, kwartyle, skośność, kurtoza).
+
+```{r}
+
+
+```
+
+**Zadanie 8**. Przedstaw na histogramach oraz wykresach ramkowych rozkłady wieku osób z wysokim i niskim ryzykiem kredytowym (porównanie - 2 wykresy obok siebie).
+
+```{r}
+
+
+```
+
+## Fajki
+
+### Fajka bazowa
+
+**Przykład**. [Dane](https://support.spatialkey.com/spatialkey-sample-csv-data/) dotyczą prawie 985 **transakcji** sprzedaży mieszkań z Sacramento (Kalifornia,USA). Poniżej pokazano przykład wykorzystania fajki bazowej R "\|\>": wykres logarytmu gęstości cen.
+
+```{r fajka}
+price |> 
+  log() |>
+  density() |>
+  plot()
+```
+
+### Fajka %\>%
+
+**Przykład**. Wykreśl histogram cen sprzedaży mieszkań ("Condo") z dwiema sypialniami.
+
+Filtry z dplyr działają na całej ramce danych, stąd by wykreślić ceny musimy użyć pakietu ggplot2:
+
+```{r zadanie, echo=FALSE}
+dane %>%
+  filter(type=="Condo" & beds==2) %>%
+  ggplot(aes(price)) +
+  geom_histogram(bins=8)
+```
+
+Bez użycia filtra i fajek nie ma takiej potrzeby:
+
+```{r zadanie2, echo=FALSE}
+dane2<-dane[type=="Condo" & beds==2,]
+hist(dane2$price)
+```
