@@ -1,0 +1,749 @@
+---
+title: "Podstawowe operacje w R - część 2."
+subtitle: 'Operatory i funkcje'
+author: "Twoje imię i nazwisko"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::downcute:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: true
+    highlight: pygments
+---
+
+```{r ustawienia, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+download.file("https://github.com/devbabar/realestate_data_analysis/blob/master/Sacramento_realestate_transactions.csv?raw=true", destfile="dane.csv", mode="wb")
+dane <- read.csv("dane.csv")
+attach(dane)
+options(scipen = 999, digits=3)  #wyłączam notację naukową, dajemy 3 miejsca po przecinku
+attach(dane)   #załączam ramkę danych do pamięci, rozpoznajemy odtąd po nazwach zmiennych
+library(tidyverse)   #pakiet wranglingowy, z fajkami i grafiką ggplot2
+library(rmdformats)  #pakiet z szablonami Markdown
+library(magrittr)   # pakiet do fajek
+library(lubridate)  # pakiet do operacji na datach
+```
+
+## Operatory
+
+### Operatory arytmetyczne
+
+```{r}
+x <- 4
+y <- 2
+
+# dodawanie
+x + y
+
+# odejmowanie
+x - y
+
+# mnożenie
+x * y
+
+# dzielenie 
+x / y
+
+# modulus 
+x %% y
+
+# power
+x ^ y
+
+```
+
+### Operatory logiczne
+
+```{r}
+# równe?
+x == y
+
+# nie równe?
+x != y
+
+# większe od?
+x > y
+
+# mniejsze od?
+x < y
+
+# większe lub równe od?
+x >= y
+
+# mniejsze lub równe od?
+x <= y
+
+```
+
+Operator OR | i operator AND & są przydatne, gdy mamy do czynienia z twierdzeniami logicznymi.
+
+```{r}
+(x > y) | (y < x)
+(x > y) & (y < x)
+```
+
+| i & są wektoryzowane, co oznacza, że można je zastosować do dwóch wektorów logicznych. Każda para jest porównywana i dla każdego elementu powstaje wynik. Wynikiem jest wektor.
+
+```{r}
+c(F,F,F,T,F,F) | c(F,F,F,F,F,F)
+```
+
+Teraz istnieją również dwa warianty || i &&. Operatory te porównują elementy od lewej do prawej i zatrzymują się po pierwszym elemencie. Rozważmy ten sam przykład powyżej, zastępując | przez ||. Wynikiem jest jeden element, a nie wektor.
+
+```{r}
+c(F,F,F,T,F,F) || c(F,F,F,F,F,F)
+```
+
+Lepszą praktyką jest używanie any() i all() do oceny wektorów logicznych na pojedynczy logiczny.
+
+```{r}
+# Czy któreś z nich jest TRUE?
+any(c(F,F,F,T,F,F))
+# Czy wszystkie z nich są TRUE?
+all(c(F,F,F,T,F,F))
+```
+
+Znaki/łańcuchy mogą być przypisane do zmiennych w podobny sposób.
+
+```{r}
+z <- "to"
+z1 <- "tamto"
+paste(z,z1)
+```
+
+Funkcja paste() łączy ciągi znaków.
+
+Nazwy zmiennych muszą być tak dobrane, aby nie kolidowały z istniejącymi zmiennymi/funkcjami. Na przykład należy unikać nazwy zmiennej c, ponieważ jest to istniejąca funkcja do konkatenacji obiektów R. Należy unikać nazwy zmiennej t, ponieważ jest to funkcja do transpozycji macierzy. Nazwy zmiennych nie mogą zaczynać się od liczby.
+
+### Operator fajki
+
+Możesz użyć operatora pipe (%>%) w R, aby "spiąć" razem sekwencję operacji.
+
+Operator ten jest najczęściej używany z pakietem dplyr w R do wykonywania sekwencji operacji na ramce danych.
+
+Podstawowa składnia operatora fajki to:
+
+    dane %>% 
+      zrób coś %>% 
+      a potem zrób jeszcze coś %>%
+      a potem wylicz/narysuj...
+
+Operator fajki po prostu przekazuje wyniki jednej operacji do następnej operacji pod nią.
+
+Zaletą stosowania operatora fajki jest to, że czyni on kod niezwykle łatwym do odczytania.
+
+#### Fajka podstawowa
+
+Podstawową funkcją dostarczaną przez pakiet magrittr jest %>%, lub tak zwany operator "pipe". Operator ten przekazuje wartość, lub wynik wyrażenia, do następnego wywołania funkcji/wyrażenia. Na przykład funkcja filtrująca dane może być zapisana jako:
+
+      filter(data, variable == numeric_value)
+
+lub:
+
+
+      data %>% filter(variable == numeric_value)
+
+Obie funkcje wykonują to samo zadanie i korzyść z użycia %>% może nie być od razu oczywista; jednakże, gdy chcemy wykonać wiele funkcji, jej zaleta staje się oczywista. 
+
+Na przykład, jeśli chcemy przefiltrować pewne dane, pogrupować je według kategorii, podsumować je, a następnie uporządkować podsumowane wyniki, możemy wypisać to na trzy różne sposoby. 
+
+Możemy na przykład zmienić kolumny w bazowym zbiorze danych "mtcars":
+
+``` {r}
+# zmieniamy nazwy kolumn
+mtcars %>%
+        head %>%
+        set_colnames(paste("Col", 1:11, sep = ""))
+```
+
+
+#### Fajki dodatkowe
+
+magrittr oferuje również kilka alternatywnych operatorów pipe. Niektóre funkcje, jak np. funkcje wykreślania, powodują zakończenie łańcucha argumentów przesyłanych rurociągiem. 
+
+Operator tee (%T>%) pozwala kontynuować piping funkcji, które normalnie powodują zakończenie.
+
+``` {r}
+mtcars %>%
+        filter(carb > 1) %>%
+        extract(, 1:4) %>%
+        plot() %>%
+        summary()
+```
+
+W powyższym przykładzie normalna fajka kończy się funkcją plot() dając w efekcie NULL jako wyniki dla funkcji summary()
+
+Wstawienie %T>% pozwala na wykreślanie i wykonywanie funkcji, które podążają za funkcją plotowania:
+
+``` {r}
+mtcars %>%
+        filter(carb > 1) %>%
+        extract(, 1:4) %T>%
+        plot() %>%
+        summary()
+```
+
+Operator przypisania złożonego %<>% jest używany do aktualizowania wartości poprzez najpierw wprowadzenie jej do jednego lub więcej wyrażeń, a następnie przypisanie wyniku. 
+
+Na przykład, powiedzmy, że chcesz przekształcić zmienną mpg w ramce danych mtcars na pomiar pierwiastka kwadratowego. Użycie %<>% spowoduje wykonanie funkcji po prawej stronie %<>% i zapisanie zmian, jakie te funkcje wykonują, do zmiennej lub ramki danych wywołanej po lewej stronie %<>%.
+
+``` {r}
+mtcars$mpg %<>% sqrt
+
+head(mtcars)
+```
+
+Niektóre funkcje (np. lm, aggregate, cor) posiadają argument data, który pozwala na bezpośrednie użycie nazw wewnątrz danych jako części wywołania. 
+
+Operator ekspozycji (%$%) jest przydatny, gdy chcemy przekazać ramkę danych, która może zawierać wiele kolumn, do funkcji, która jest stosowana tylko do niektórych kolumn. 
+
+Na przykład, funkcja korelacji (cor) wymaga tylko argumentu x i y, więc jeśli przesyłasz dane mtcars do funkcji cor używając %>%, otrzymasz błąd, ponieważ cor nie wie, jak obsługiwać mtcars. Jednak użycie %$% pozwala ci powiedzieć "weź tę ramkę danych, a następnie wykonaj cor() na tych określonych kolumnach w mtcars."
+
+```{undefined eval=FALSE, include=FALSE}
+mtcars %>%
+        subset(vs == 0) %>%
+        cor(mpg, wt)
+## Error in pmatch(use, c("all.obs", "complete.obs", "pairwise.complete.obs", : object 'wt' not found
+```
+
+Błąd no nie? 
+Użycie %$% pozwala na wybranie zmiennych:
+
+``` {r}
+mtcars %>%
+        subset(vs == 0) %$%
+        cor(mpg, wt)
+```
+
+
+### Inne operatory
+
+Oto kilka innych powszechnie używanych operatorów.
+
+:   jest używany do generowania sekwencji.
+
+```{r}
+1:10
+```
+
+%in% jest operatorem zbioru.
+
+"a" %in% c("x", "p", "a", "c") sprawdza, czy a jest członkiem zbioru x,p,a,c.
+
+```{r}
+"a" %in% c("x","p","a","c")
+```
+
+Odwrotność również by działała, ale liczba zwróconych elemntów jest teraz inna.
+
+```{r}
+c("x","p","a","c") %in% "a"
+```
+
+:: jest używany do bezpośredniego dostępu do funkcji z określonego pakietu. Kiedy normalnie wywołujesz funkcję, powiedzmy sum(), R przeszukuje przestrzeń nazw i znajduje ją. W przypadku, gdy istnieje funkcja sum() z innego pakietu, ostatnio załadowany pakiet zastępuje poprzednią funkcję. W takich przypadkach lub aby być całkowicie pewnym, że używasz właściwej funkcji z właściwego pakietu, możesz użyć package::function() do wywołania funkcji. Na przykład; base::sum(). ::: jest używane do wywoływania funkcji z pakietu, które nie są "eksportowane". Jest to rzadko używane.
+
+%*% jest używane do mnożenia macierzy.
+
+```{r}
+matrix(c(2,2,3,3),nrow=2) %*% matrix(c(4,2,5,3),nrow=2)
+matrix(c(2,2,3,3),nrow=2) %*% c(6,6)
+```
+
+### Operacje na datach
+
+Operacje na datach i format daty nie są takie proste i oczywiste jak by się wydawało.
+
+Proszę prześledź kilka poniższych przykładów operacji z datami. 
+
+```{r}
+x <- "2013-04-03"
+# Jaka jest struktura x?
+str(x)
+# Użyj as.Date() aby zmienić format na datę
+x_date <- as.Date(x)
+str(x_date)
+# Zamień April 10 2014 jako datę
+april_10_2014 <- as.Date("2014-04-10")
+```
+
+Użyjmy pakietu readr. 
+Co wykonują poniższe czynności?
+
+```{r}
+as.POSIXct("2010-10-01 12:12:00")
+as.POSIXct("2010-10-01 12:12:00", tz = "America/Los_Angeles")
+```
+
+Bardzo przydatny jest pakiet "lubridate" dla operacji z datami.
+
+```{r}
+library(lubridate)
+x <- "2010 September 20th" # 2010-09-20
+ymd(x)
+y <- "02.01.2010"  # 2010-01-02
+dmy(y)
+z <- "Sep, 12th 2010 14:00"  # 2010-09-12T14:00
+mdy_hm(z)
+```
+
+Możemy także w dowolny sposób manipulować formatem wyświetlania dat.
+
+```{r}
+# Kolejność:
+x <- "Monday June 1st 2010 at 4pm"
+parse_date_time(x, orders = "amdyIp")
+two_orders <- c("October 7, 2001", "October 13, 2002", "April 13, 2003",  "17 April 2005", "23 April 2017")
+parse_date_time(two_orders, orders = c("mdy","dmy"))
+short_dates <- c("11 December 1282", "May 1372", "1253")
+myorders <- c("dOmY", "OmY", "Y")
+parse_date_time(short_dates, orders = myorders)
+```
+
+Funkcje pakietu lubridate pozwalają nam również zaokrąglać formaty dat.
+
+```{r}
+r_3_4_1 <- ymd_hms("2016-05-03 07:13:28 UTC")
+# Zaokrąglij w dół do dni
+floor_date(r_3_4_1, unit = "day")
+# Zaokrąglij do 5 minut
+round_date(r_3_4_1, unit = "5 minutes")
+# Zaokrąglij do tygodni 
+ceiling_date(r_3_4_1, unit = "week")
+# Odejmij od r_3_4_1 ją samą i zaokrąglij do dni
+r_3_4_1 - floor_date(r_3_4_1, unit = "day")
+```
+
+Rozpatrzmy funkcje obliczeniowe dat:
+
+```{r}
+# Lądowanie na księżycu :)
+date_landing <- mdy("July 20, 1969")
+moment_step <- mdy_hms("July 20, 1969, 02:56:15", tz = "UTC")
+# Ile dni już upłynęło??
+difftime(today(), date_landing, units = "days")
+# Ile sekund?
+difftime(now(),moment_step, units = "secs")
+```
+
+Możemy łatwo obliczać różnice między datami:
+
+```{r}
+# 3 daty
+mar_11 <- ymd_hms("2017-03-11 12:00:00", 
+  tz = "America/Los_Angeles")
+mar_12 <- ymd_hms("2017-03-12 12:00:00", 
+  tz = "America/Los_Angeles")
+mar_13 <- ymd_hms("2017-03-13 12:00:00", 
+  tz = "America/Los_Angeles")
+# Różnica pomiędzy mar_13 oraz mar_12 w sekundach
+difftime(mar_13, mar_12, units = "secs")
+```
+
+Możemy również manipulować datami, dodawać lub odejmować okresy:
+
+```{r}
+# Dodaj jeden tydzień do mon_2pm
+mon_2pm <- dmy_hm("27 Aug 2018 14:00")
+mon_2pm + weeks(1)
+# Dodaj 81 godzin do tue_9am
+tue_9am <- dmy_hm("28 Aug 2018 9:00")
+tue_9am + dhours(81)
+# Odejmij 5 lat od today()
+today() - years(5)
+# Odejmij 5 lat od today()
+today() - dyears(5)
+```
+
+Możemy również manipulować sekwencjami:
+
+```{r}
+# Dodaj 8 godzin:
+today_8am <- today() + hours(8)
+# Sekwencja 1 do 26:
+every_two_weeks <- 1:26 * weeks(2)
+# Utwórz sekwencję dat co 2 tygodnie przez rok:
+every_two_weeks  + today_8am
+```
+
+
+## Funkcje
+
+Funkcje, które są dostarczane z bazową instalacją R, są określane jako funkcje wbudowane lub funkcje bazowe.
+
+R ma mnóstwo wbudowanych funkcji do różnych zastosowań, takich jak analiza danych, programowanie, matematyka, wykreślanie itp.
+
+Dodatkowe funkcje mogą być udostępnione poprzez zainstalowanie zewnętrznych pakietów.
+
+### Funkcje podstawowe
+
+Poniżej przedstawiono kilka funkcji, które można zastosować do danych liczbowych:
+
+```{r}
+# wygeneruj 10 liczb losowych z zakresu od 1 do 200
+x <- sample(x=1:200,10)
+
+# długość
+length(x)
+
+# suma
+sum(x)
+
+# średnia
+mean(x)
+
+# mediana
+median(x)
+
+# minimum
+min(x)
+
+# logarytm
+log(x)
+
+# exponent
+exp(x)
+
+# pierwiastek
+sqrt(x)
+
+# zaokrąglanie
+round() 
+#Domyślnie zaokrągla wartości do 0 miejsc po #przecinku. Wypróbuj ?round w konsoli dla odmian #round() i sposobów zmiany liczby cyfr do #zaokrąglenia.  
+```
+
+
+### Funkcje użytkowe
+
+R posiada kilka funkcji do żonglowania strukturami danych:  
+
+`seq()`: Generuje sekwencje, określając argumenty from, to, oraz by.  
+
+`rep()`: Replikuj elementy wektorów i list.  
+
+`sort()`: Sortuj wektor w porządku rosnącym. Działa na liczbach, ale także na łańcuchach znaków i logikach.  
+
+`rev()`: Odwraca elementy w strukturach danych, dla których zdefiniowano odwracanie.  
+
+`str()`: Wyświetl strukturę dowolnego obiektu R. 
+
+`append()`: Połącz wektory lub listy.  
+
+`is.*()`: Sprawdź klasę obiektu R.  
+ 
+`as.*()`: Konwertowanie obiektu R z jednej klasy na inną.  
+
+`unlist()`: Spłaszcz (ewentualnie osadzone) listy, aby uzyskać wektor.
+
+
+### Funkcje tekstowe
+
+Kilka przydatnych funkcji związanych z ciągami znaków:
+
+```{r}
+a <- "sunny"
+b <- "day"
+
+# połącz
+paste(a, b)
+
+# odnajdź wzór
+grep("sun", a)
+
+# liczba znaków
+nchar("sunny")
+
+# do dużej litery
+toupper("sunny")
+
+# do małej litery
+tolower("SUNNY")
+
+# zamiana wzoru
+sub("sun", "fun", "sunny")
+
+# podciąg
+substr("sunny", start=1, stop=3)
+```
+
+#### grepl & grep 
+
+W swojej najbardziej podstawowej formie, wyrażenia regularne mogą być użyte do sprawdzenia, czy dany wzorzec istnieje wewnątrz łańcucha znaków lub wektora łańcuchów znaków. 
+
+W tym celu można użyć:  
+
+`grepl()`, które zwraca TRUE, gdy wzorzec zostanie znaleziony w odpowiednim łańcuchu znaków.  
+
+`grep()`, która zwraca wektor indeksów łańcuchów znaków zawierających wzorzec.  
+
+Obie funkcje potrzebują wzorca i argumentu `x`, gdzie wzorzec jest wyrażeniem regularnym, które chcesz dopasować, a argument `x` jest wektorem znaków, z którego należy szukać dopasowań.  
+
+W tym i następnych ćwiczeniach, będziemy manipulować wektorem znaków adresów e-mail! 
+
+Wektor emaili został już zdefiniowany, więc możesz od razu przystąpić do wykonywania instrukcji!  
+
+```{r}
+# Wektor maili został już zdefiniowany dla Ciebie:
+emails <- c("john.doe@ivyleague.edu", "education@world.gov", "dalai.lama@peace.org",
+            "invalid.edu", "quant@bigdatacollege.edu", "cookie.monster@sesame.tv")
+
+# Użyj grepl() aby dopasować dla "edu"
+grepl(pattern = "edu", x = emails)
+
+# Użyj grep() aby dopasować dla "edu", zapisz wynik do hits
+ 
+hits <- grep(pattern = "edu", x = emails)
+
+# Podzestaw emaili używając hits
+emails[hits]
+```
+
+
+Możesz użyć znaku starszeństwa, `^`, i znaku dolara, `$`, aby dopasować zawartość znajdującą się odpowiednio w `start` oraz `end` ciągu tekstowego.
+
+To może nas przybliżyć o krok do poprawnego wzorca dopasowującego tylko adresy e-mail `".edu"` z naszej listy e-maili. 
+
+Ale jest jeszcze więcej rzeczy, które można dodać, aby uczynić wzorzec bardziej solidnym: 
+
+`@`, ponieważ poprawny email musi zawierać znak at.  
+`.*`, który pasuje do dowolnego znaku (.) zero lub więcej razy (*). Zarówno `dot` jak i `asterisk` są metaznakami. 
+
+Można ich użyć do dopasowania dowolnego znaku pomiędzy znakiem at a częścią ".edu" adresu email. 
+
+Aby dopasować część "edu" adresu e-mail na końcu łańcucha, należy użyć znaku `dot` i `asterisk`. 
+
+Część `\\` ucieka od kropki: mówi R, że chcesz użyć . jako rzeczywistego znaku.  
+
+```{r}
+# Wektor emaili został już zdefiniowany dla Ciebie
+emails <- c("john.doe@ivyleague.edu", "education@world.gov", "dalai.lama@peace.org",
+            "invalid.edu", "quant@bigdatacollege.edu", "cookie.monster@sesame.tv")
+
+# Użyj grepl() aby dopasować adresy .edu bardziej solidnie
+grepl(pattern = "@.edu$", x = emails)
+
+# Użyj grep(), aby dopasować adresy .edu bardziej solidnie, zapisując wynik w hits
+hits <- grep(pattern = "@.*edu$", x = emails)
+
+# Podzestaw emaili używając hits
+emails[hits]
+```
+
+#### sub i gsub  
+
+Podczas gdy `grep()` i `grepl()` były używane do prostego sprawdzenia, czy wyrażenie regularne może być dopasowane do wektora znaków, `sub()` i `gsub()` idą o krok dalej: można podać argument zamiany. Jeśli wewnątrz wektora znaków x, wzór wyrażenia regularnego zostanie znaleziony, pasujące elementy zostaną zastąpione `replacement.sub()` zastępuje tylko pierwsze dopasowanie, podczas gdy `gsub()` zastępuje wszystkie dopasowania.  
+
+```{r}
+# Wektor emails został już zdefiniowany dla Ciebie
+emails <- c("john.doe@ivyleague.edu", "education@world.gov", "global@peace.org",
+"invalid.edu", "quant@bigdatacollege.edu", "cookie.monster@sesame.tv")
+
+# Użyj sub() aby przekonwertować domeny email na pg.edu.pl
+sub(pattern = "@*.edu$", replacement = "@pg.edu.pl", x = emails)
+
+emails
+# Dlaczego nie wymieniono wszystkich adresów??? ;-)
+```
+
+Wyrażenia regularne to typowa koncepcja, której nauczysz się poprzez działanie i oglądanie innych przykładów. Zanim zaczniesz się zastanawiać nad wyrażeniem regularnym w tym ćwiczeniu, spójrz na nowe rzeczy, które zostaną użyte:  
+
+`.*`: Zwykły podejrzany! Można go odczytać jako "każdy znak, który jest dopasowany zero lub więcej razy".  
+
+`\\s`: Dopasowanie spacji. S jest normalnie znakiem, ucieczka od niego (`\\`) czyni go metaznakiem.  
+
+`[0-9]+`: Dopasuj liczby od 0 do 9, przynajmniej raz (+).  
+
+`([0-9]+)`: Nawiasy służą do udostępnienia części pasującego łańcucha do zdefiniowania zastępstwa. Nawias w argumencie replacement z sub() zostaje ustawiony na łańcuch, który jest przechwytywany przez wyrażenie regularne [0-9]+.  
+
+```{r}
+awards <- c("Won 1 Oscar.",
+  "Won 1 Oscar. Another 9 wins & 24 nominations.",
+  "1 win and 2 nominations.",
+  "2 wins & 3 nominations.",
+  "Nominated for 2 Golden Globes. 1 more win & 2 nominations.",
+  "4 wins & 1 nomination.")
+
+# Co zwraca ten fragment kodu?
+sub(".*\\s([0-9]+)\\snomination.*$", "\\1", awards)
+```
+
+Czy możesz wyjaśnić, dlaczego co się dokładnie stało?
+
+Otóż `([0-9]+)` wybiera całą liczbę, która znajduje się przed słowem "nominacje" w ciągu, a całe dopasowanie zostaje zastąpione tą liczbą ze względu na odniesienie do treści wewnątrz nawiasów. 
+
+### Funkcje ogólne
+
+Kilka ogólnych funkcji:
+
+```{r}
+print("hello")
+print("world")
+cat("hello")
+cat(" world")
+cat("\nhello\nworld")
+```
+
+Jeśli widzisz, że kopiujesz fragment kodu R wiele razy, to prawdopodobnie dobrym pomysłem jest stworzenie z niego funkcji.
+
+Załóżmy, że masz dwa wektory, na których chciałbyś wykonać serię operacji, a następnie wyprowadzić wynik.
+
+```{r}
+a <- 1:6
+b <- 8:10
+
+d <- a*b
+e <- log(d)
+f <- sqrt(e)
+f
+```
+
+Możesz zmodyfikować ten blok kodu w funkcję w następujący sposób:
+
+```{r}
+my_function <- function(a, b){
+  d <- a*b
+  e <- log(d)
+  f <- sqrt(e)
+  return(f)
+}
+```
+
+Po zdefiniowaniu możesz użyć tego, gdziekolwiek jest to potrzebne:
+
+```{r}
+my_function(a=2:4, b=6:8)
+```
+
+Zmienne zdefiniowane wewnątrz funkcji są dostępne tylko wewnątrz tej funkcji i nie są dostępne poza nią, chyba że zostaną zwrócone:
+
+```{r eval=FALSE, include=FALSE}
+my_new_function <- function(a) {
+  varz <- a + 2
+  return(varz)
+}
+
+my_new_function(5)
+
+print(varz)
+```
+
+W powyższej funkcji zmienna varz utworzona wewnątrz funkcji nie jest dostępna poza nią.
+
+Możliwa jest jednak sytuacja odwrotna:
+
+```{r}
+my_new_function <- function() {
+  varz <- foo + 2
+  return(varz)
+}
+
+foo <- 55
+my_new_function()
+```
+
+W powyższym przykładzie zmienna foo użyta wewnątrz funkcji nie jest dostarczona do funkcji poprzez argument, a mimo to udaje się ją znaleźć. Gdy funkcja nie znajduje zmiennej wewnątrz funkcji, szuka jej poza nią.
+
+### Funkcje warunkowe
+
+Instrukcje warunkowe pisze się za pomocą if().
+
+```{r}
+a <- 2
+b <- 5
+
+if(a < b) print(paste(a,"jest mniejsze od",b))
+```
+
+else służy do dodania alternatywnego wyjścia:
+
+```{r}
+a <- 2
+b <- 5
+
+if(a < b) {
+  print(paste(a,"jest mniejsze od",b))
+}else{
+  print(paste(b,"jest mniejsze od",a))
+}
+
+a <- 60
+b <- 10
+
+if(a < b) {
+  print(paste(a,"jest mniejsze od",b))
+}else{
+  print(paste(b,"jest mniejsze od",a))
+}
+```
+
+instrukcje if else mogą być łączone w łańcuchy:
+
+```{r}
+grade <- "B"
+
+if(grade == "A"){
+  print("Ocena jest bardzo dobra!")
+}else if(grade == "B"){
+  print("Ocena jest dobra.")
+} else if (grade == "C") {
+  print("Ocena dostateczna.")
+}
+```
+
+Nie należy tego mylić z funkcją o nazwie ifelse(). Jest ona również używana do wyboru warunkowego i przyjmuje postać ifelse(test, return-if-yes, return-if-no), a to jest wektorowe. Tak więc, na przykład, oto kilka wieków osób. Sklasyfikuj je jako dorosłych lub młodocianych.
+
+```{r}
+x <- c(6,23,12,10,56,44)
+ifelse(x>18,"Dorosły", "Młodociany")
+```
+
+Pętla for() jest przydatna do wielokrotnego uruchamiania poleceń przez znaną liczbę iteracji.
+
+```{r}
+for (i in 1:5){
+  print(i)
+}
+```
+
+Pętla while() jest przydatna do wielokrotnego uruchamiania poleceń przez nieznaną liczbę iteracji, aż do spełnienia jakiegoś warunku.
+
+```{r}
+i <- 1
+while(i < 5){
+  print(i)
+  i <- i+1
+}
+```
+
+## Struktura tibble
+
+W całej tej książce pracujemy z "tibbles" zamiast tradycyjnego data.frame w R. Tibbles są ramkami danych, ale poprawiają niektóre starsze zachowania, aby ułatwić życie. R jest starym językiem i niektóre rzeczy, które były przydatne 10 lub 20 lat temu, teraz stają na drodze.
+
+Trudno jest zmienić bazę R bez łamania istniejącego kodu, więc większość innowacji pojawia się w pakietach. Tutaj zobaczmy jak działa tibble, który zapewnia opinane ramki danych, które sprawiają, że praca w tidyverse jest nieco łatwiejsza. W większości analiz używa się terminu tibble i data frame zamiennie.
+
+```{r}
+tibble(
+  x = 1:5, 
+  y = 1, 
+  z = x ^ 2 + y
+)
+```
+
+Jeśli jesteś już zaznajomiony z data.frame(), zauważ, że tibble() robi znacznie mniej: nigdy nie zmienia typu danych wejściowych (np. nigdy nie konwertuje ciągów znaków na współczynniki!), nigdy nie zmienia nazw zmiennych i nie tworzy nazw wierszy.
+
+Główne różnice między tibble a ramką danych:
+
+Tibble mają wyrafinowaną metodę drukowania, która pokazuje tylko pierwsze 10 wierszy i wszystkie kolumny, które mieszczą się na ekranie. To znacznie ułatwia pracę z dużymi danymi. Oprócz nazwy, każda kolumna podaje swój typ, co jest miłą cechą zapożyczoną z str()
+
+Tibbles są zaprojektowane tak, abyś przypadkowo nie przytłoczył swojej konsoli, gdy drukujesz duże ramki danych. Ale czasami potrzebujesz więcej danych wyjściowych niż domyślny wyświetlacz. Istnieje kilka opcji, które mogą pomóc.
+
+## Zadanie do wykonania
+
+Zadanie wykonaj w kilku etapach:
+
+1.  Zapisz "dane" jako obiekt tibble pod inną nazwą, np. dane2. Porównaj je.
+2.  Które ze zmiennych przekształcone powinny być w czynnik (factor)?
+3.  Cena nieruchomości (price) jest obecnie integer. Czy to odpowiednie?
+4.  Napisz własną funkcję, która wykonywać będzie standaryzowanie zmiennych.
+5.  Utwórz nową zmienną "cena" w tibble "dane2", która będzie zestandaryzowaną price, korzystając z własnej funkcji.
+6.  Wykreśl cenę oraz price na wykresach ramkowych obok siebie na jednym ekranie. Różnice?

@@ -39,7 +39,7 @@ wiek[wiek>30]
 
 ```{r}
 ryz <- ifelse(wiek>=30, 0, 1)
-ryzyko <- lfactor(ryz,levels=0:1,labels=c("wysokie","niskie"))
+ryzyko <- factor(ryz,levels=0:1,labels=c("wysokie","niskie"))
 ryzyko
 ```
 
